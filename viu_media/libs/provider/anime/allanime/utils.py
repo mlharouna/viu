@@ -1,10 +1,17 @@
 import functools
+import hashlib
+import json
 import logging
 import os
 import re
+from base64 import b64decode
 from itertools import cycle
 
+from Cryptodome.Cipher import AES
+
 logger = logging.getLogger(__name__)
+
+_API_RESPONSE_KEY = "P7K2RGbFgauVtmiS"[::-1]
 
 # Dictionary to map hex values to characters
 hex_to_char = {
@@ -71,6 +78,24 @@ def one_digit_symmetric_xor(password: int, target: str):
             yield segment ^ password
 
     return bytes(genexp()).decode("utf-8")
+
+
+def decrypt_api_response(payload: str):
+    key = hashlib.sha256(_API_RESPONSE_KEY.encode("utf-8")).digest()
+    encrypted = b64decode(payload)
+    nonce = encrypted[:12]
+    ciphertext = encrypted[12:-16]
+    tag = encrypted[-16:]
+    cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
+    return json.loads(cipher.decrypt_and_verify(ciphertext, tag).decode("utf-8"))
+
+
+def parse_api_response(response):
+    payload = response.json()
+    data = payload.get("data")
+    if isinstance(data, dict) and "tobeparsed" in data:
+        payload["data"] = decrypt_api_response(data["tobeparsed"])
+    return payload
 
 
 def decode_hex_string(hex_string):
