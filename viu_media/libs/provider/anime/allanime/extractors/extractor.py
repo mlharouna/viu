@@ -18,7 +18,9 @@ from .yt_mp4 import YtExtractor
 AVAILABLE_SOURCES = {
     "Sak": SakExtractor,
     "S-mp4": Smp4Extractor,
+    "S-Mp4": Smp4Extractor,
     "Luf-Mp4": Lufmp4Extractor,
+    "Luf-mp4": Lufmp4Extractor,
     "Default": DefaultExtractor,
     "Yt-mp4": YtExtractor,
     "Kir": KirExtractor,

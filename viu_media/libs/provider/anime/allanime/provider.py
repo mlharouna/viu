@@ -16,6 +16,7 @@ from .mappers import (
     map_to_anime_result,
     map_to_search_results,
 )
+from .utils import parse_api_response
 
 if TYPE_CHECKING:
     from .types import AllAnimeEpisode
@@ -42,7 +43,7 @@ class AllAnime(BaseAnimeProvider):
                 "translationtype": params.translation_type,
                 "countryorigin": params.country_of_origin,
             },
-            headers=API_GRAPHQL_HEADERS
+            headers=API_GRAPHQL_HEADERS,
         )
         return map_to_search_results(response)
 
@@ -53,7 +54,7 @@ class AllAnime(BaseAnimeProvider):
             self.client,
             ANIME_GQL,
             variables={"showId": params.id},
-            headers=API_GRAPHQL_HEADERS
+            headers=API_GRAPHQL_HEADERS,
         )
         return map_to_anime_result(response)
 
@@ -70,9 +71,13 @@ class AllAnime(BaseAnimeProvider):
                 "translationType": params.translation_type,
                 "episodeString": params.episode,
             },
-            headers=API_GRAPHQL_HEADERS
+            headers=API_GRAPHQL_HEADERS,
         )
-        episode: AllAnimeEpisode = episode_response.json()["data"]["episode"]
+        episode: AllAnimeEpisode = parse_api_response(episode_response)["data"][
+            "episode"
+        ]
+        if not episode:
+            return
         for source in episode["sourceUrls"]:
             if server := extract_server(self.client, params.episode, episode, source):
                 yield server
