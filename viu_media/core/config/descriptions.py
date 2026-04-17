@@ -80,6 +80,7 @@ FZF_HEADER_COLOR = "RGB color for the main TUI header."
 FZF_PREVIEW_HEADER_COLOR = "RGB color for preview pane headers."
 FZF_PREVIEW_SEPARATOR_COLOR = "RGB color for preview pane separators."
 FZF_OPTS = "The FZF options, formatted with leading tabs for the config file."
+FZF_VI_MODE = "Enable safe vi-style navigation bindings in FZF menus."
 FZF_HEADER_ASCII_ART = "The ASCII art to display as a header in the FZF interface."
 
 

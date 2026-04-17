@@ -336,6 +336,7 @@ class FzfConfig(OtherConfig):
         default_factory=lambda: defaults.FZF_OPTS.read_text(encoding="utf-8"),
         description=desc.FZF_OPTS,
     )
+    vi_mode: bool = Field(default=defaults.FZF_VI_MODE, description=desc.FZF_VI_MODE)
     header_color: str = Field(
         default=defaults.FZF_HEADER_COLOR, description=desc.FZF_HEADER_COLOR
     )
