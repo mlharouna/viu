@@ -13,6 +13,8 @@ from ..base import BaseSelector
 
 logger = logging.getLogger(__name__)
 
+VI_MODE_BINDINGS = "alt-j:down,alt-k:up,alt-h:backward-char,alt-l:forward-char"
+
 
 class FzfSelector(BaseSelector):
     def __init__(self, config: FzfConfig):
@@ -31,6 +33,11 @@ class FzfSelector(BaseSelector):
             ]
         )
 
+    def _vi_mode_args(self) -> list[str]:
+        if not self.config.vi_mode:
+            return []
+        return ["--bind", VI_MODE_BINDINGS]
+
     def choose(self, prompt, choices, *, preview=None, header=None):
         fzf_input = "\n".join(choices)
 
@@ -42,6 +49,7 @@ class FzfSelector(BaseSelector):
             self.header,
             "--header-first",
         ]
+        commands.extend(self._vi_mode_args())
         if preview:
             commands.extend(["--preview", preview])
 
@@ -70,6 +78,7 @@ class FzfSelector(BaseSelector):
             f"{self.header}\nPress TAB to select multiple items, ENTER to confirm",
             "--header-first",
         ]
+        commands.extend(self._vi_mode_args())
         if preview:
             commands.extend(["--preview", preview])
 
@@ -149,6 +158,7 @@ class FzfSelector(BaseSelector):
             f"change:reload({search_command})",
             "--ansi",
         ]
+        commands.extend(self._vi_mode_args())
 
         # If there's an initial query, set it
         if initial_query:
