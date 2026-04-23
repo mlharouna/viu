@@ -3,28 +3,15 @@ from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
-# from .allanime.types import Server as AllAnimeServer
-# from .animepahe.types import Server as AnimePaheServer
-
 
 # ENUMS
 class ProviderName(Enum):
-    ALLANIME = "allanime"
     ANIMEPAHE = "animepahe"
     ANIMEUNITY = "animeunity"
 
 
 class ProviderServer(Enum):
     TOP = "TOP"
-
-    # AllAnimeServer values
-    SHAREPOINT = "sharepoint"
-    DROPBOX = "dropbox"
-    GOGOANIME = "gogoanime"
-    WETRANSFER = "weTransfer"
-    WIXMP = "wixmp"
-    YT = "Yt"
-    MP4_UPLOAD = "mp4-upload"
 
     # AnimePaheServer values
     KWIK = "kwik"

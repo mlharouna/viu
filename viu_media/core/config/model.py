@@ -160,7 +160,7 @@ class GeneralConfig(BaseModel):
         default=defaults.GENERAL_WELCOME_SCREEN, description=desc.GENERAL_WELCOME_SCREEN
     )
     provider: ProviderName = Field(
-        default=ProviderName.ALLANIME,
+        default=ProviderName.ANIMEPAHE,
         description=desc.GENERAL_PROVIDER,
     )
     selector: Literal["default", "fzf", "rofi"] = Field(
