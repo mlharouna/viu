@@ -26,6 +26,20 @@ logger = logging.getLogger(__name__)
 class AnimePahe(BaseAnimeProvider):
     HEADERS = REQUEST_HEADERS
 
+    def _decode_json_response(self, response, context: str) -> dict | None:
+        if response.text.lstrip().startswith("<"):
+            logger.error(
+                "AnimePahe %s returned HTML instead of JSON. Upstream anti-bot or challenge page is likely blocking access.",
+                context,
+            )
+            return None
+
+        try:
+            return response.json()
+        except Exception as exc:
+            logger.error("AnimePahe %s returned invalid JSON: %s", context, exc)
+            return None
+
     @debug_provider
     def search(self, params: SearchParams) -> SearchResults | None:
         return self._search(params)
@@ -35,7 +49,10 @@ class AnimePahe(BaseAnimeProvider):
         url_params = {"m": "search", "q": params.query}
         response = self.client.get(ANIMEPAHE_ENDPOINT, params=url_params)
         response.raise_for_status()
-        data: AnimePaheSearchPage = response.json()
+        decoded = self._decode_json_response(response, "search")
+        if not decoded:
+            return None
+        data: AnimePaheSearchPage = decoded
         if not data.get("data"):
             return
         return map_to_search_results(data)
@@ -83,7 +100,27 @@ class AnimePahe(BaseAnimeProvider):
                     episode.update({"episode": standardized_episode_number})
                     standardized_episode_number = int(standardized_episode_number)
 
-            return map_to_anime_result(search_result, anime)
+            mapped_anime = map_to_anime_result(search_result, anime)
+            if not mapped_anime.episodes.sub:
+                if mapped_anime.episodes.dub:
+                    logger.warning(
+                        "AnimePahe returned only dubbed episodes for anime=%s query=%r (dub=%s)",
+                        params.id,
+                        params.query,
+                        len(mapped_anime.episodes.dub),
+                    )
+                else:
+                    logger.warning(
+                        "AnimePahe returned no sub or dub episodes for anime=%s query=%r",
+                        params.id,
+                        params.query,
+                    )
+            return mapped_anime
+        logger.warning(
+            "AnimePahe returned no release data for anime=%s query=%r",
+            params.id,
+            params.query,
+        )
 
     @lru_cache()
     def _get_search_result(self, params: AnimeParams) -> Optional[SearchResult]:
@@ -105,7 +142,20 @@ class AnimePahe(BaseAnimeProvider):
         }
         response = self.client.get(ANIMEPAHE_ENDPOINT, params=url_params)
         response.raise_for_status()
-        return response.json()
+        decoded = self._decode_json_response(response, f"release page={page}")
+        if not decoded:
+            return {
+                "total": 0,
+                "per_page": 0,
+                "current_page": page,
+                "last_page": page,
+                "next_page_url": None,
+                "prev_page_url": None,
+                "_from": 0,
+                "to": 0,
+                "data": [],
+            }
+        return decoded
 
     @debug_provider
     def episode_streams(self, params: EpisodeStreamsParams) -> Iterator[Server] | None:
