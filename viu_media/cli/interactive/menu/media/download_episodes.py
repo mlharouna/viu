@@ -43,10 +43,11 @@ def download_episodes(ctx: Context, state: State) -> State | InternalDirective:
         provider_results_map, config.general.provider, media_item
     )
     selected_provider_anime_ref = provider_results_map[best_match_title]
+    provider_query = media_title
 
     with feedback.progress(f"Fetching episode list for '{best_match_title}'..."):
         full_provider_anime = provider.get(
-            AnimeParams(id=selected_provider_anime_ref.id, query=media_title)
+            AnimeParams(id=selected_provider_anime_ref.id, query=provider_query)
         )
 
     if not full_provider_anime:

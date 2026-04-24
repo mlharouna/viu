@@ -209,10 +209,11 @@ class DownloadService:
                 provider_results_map, self.app_config.general.provider, media_item
             )
             provider_anime_ref = provider_results_map[best_match_title]
+            provider_query = media_title
 
             # 3. Get full provider anime details (contains the correct episode list)
             provider_anime = self.provider.get(
-                AnimeParams(id=provider_anime_ref.id, query=media_title)
+                AnimeParams(id=provider_anime_ref.id, query=provider_query)
             )
             if not provider_anime:
                 raise ValueError(
@@ -223,7 +224,7 @@ class DownloadService:
             streams_iterator = self.provider.episode_streams(
                 EpisodeStreamsParams(
                     anime_id=provider_anime.id,
-                    query=media_title,
+                    query=provider_query,
                     episode=episode_number,
                     translation_type=self.app_config.stream.translation_type,
                 )
