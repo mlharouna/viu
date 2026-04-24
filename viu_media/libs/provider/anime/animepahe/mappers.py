@@ -60,15 +60,20 @@ def map_to_anime_result(
     search_result: SearchResult, anime: AnimePaheAnimePage
 ) -> Anime:
     episodes_info = []
-    episodes = []
+    sub_episodes = []
+    dub_episodes = []
     anime["data"] = sorted(anime["data"], key=lambda k: float(k["episode"]))
     for ep_info in anime["data"]:
-        episodes.append(str(ep_info["episode"]))
+        episode_number = str(ep_info["episode"])
+        if ep_info["audio"] == "eng":
+            dub_episodes.append(episode_number)
+        else:
+            sub_episodes.append(episode_number)
         episodes_info.append(
             AnimeEpisodeInfo(
                 id=str(ep_info["id"]),
                 session_id=ep_info["session"],
-                episode=str(ep_info["episode"]),
+                episode=episode_number,
                 title=ep_info["title"],
                 poster=ep_info["snapshot"],
                 duration=str(ep_info["duration"]),
@@ -79,8 +84,8 @@ def map_to_anime_result(
         id=search_result.id,
         title=search_result.title,
         episodes=AnimeEpisodes(
-            sub=episodes,
-            dub=episodes,
+            sub=sub_episodes,
+            dub=dub_episodes,
         ),
         year=str(search_result.year),
         poster=search_result.poster,
@@ -110,4 +115,3 @@ def map_to_server(
     return Server(
         name="kwik", links=links, episode_title=episode.title, headers=headers
     )
-
