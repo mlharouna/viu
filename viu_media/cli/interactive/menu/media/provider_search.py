@@ -22,6 +22,7 @@ def provider_search(ctx: Context, state: State) -> State | InternalDirective:
     feedback.clear_console()
 
     media_title = media_item.title.english or media_item.title.romaji
+    provider_query = media_title
     if not media_title:
         feedback.error(
             "Selected anime has no searchable title",
@@ -107,7 +108,7 @@ def provider_search(ctx: Context, state: State) -> State | InternalDirective:
         f"[cyan]Fetching full details for '{selected_provider_anime.title}'"
     ):
         full_provider_anime = provider.get(
-            AnimeParams(id=selected_provider_anime.id, query=media_title.lower())
+            AnimeParams(id=selected_provider_anime.id, query=provider_query)
         )
 
     if not full_provider_anime:
@@ -122,5 +123,6 @@ def provider_search(ctx: Context, state: State) -> State | InternalDirective:
         provider=ProviderState(
             search_results=provider_search_results,
             anime=full_provider_anime,
+            provider_query=provider_query,
         ),
     )

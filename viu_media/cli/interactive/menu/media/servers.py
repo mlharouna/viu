@@ -18,7 +18,11 @@ def servers(ctx: Context, state: State) -> State | InternalDirective:
     provider_anime = state.provider.anime
     media_item = state.media_api.media_item
 
-    anime_title = media_item.title.romaji or media_item.title.english
+    provider_query = (
+        state.provider.provider_query
+        or media_item.title.english
+        or media_item.title.romaji
+    )
     episode_number = state.provider.episode
 
     if not provider_anime or not episode_number:
@@ -29,7 +33,7 @@ def servers(ctx: Context, state: State) -> State | InternalDirective:
         server_iterator = provider.episode_streams(
             EpisodeStreamsParams(
                 anime_id=provider_anime.id,
-                query=anime_title,
+                query=provider_query,
                 episode=episode_number,
                 translation_type=config.stream.translation_type,
             )
@@ -84,10 +88,7 @@ def servers(ctx: Context, state: State) -> State | InternalDirective:
         PlayerParams(
             url=stream_link_obj.link,
             title=final_title,
-            query=(
-                state.media_api.media_item.title.romaji
-                or state.media_api.media_item.title.english
-            ),
+            query=provider_query,
             episode=episode_number,
             subtitles=[sub.url for sub in selected_server.subtitles],
             headers=selected_server.headers,

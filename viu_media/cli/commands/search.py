@@ -89,10 +89,11 @@ def search(config: AppConfig, **options: "Unpack[Options]"):
         if not selected_anime_title:
             raise ViuError("No title selected")
         anime_result = _search_results[selected_anime_title]
+        provider_query = anime_title
 
         # ---- fetch selected anime ----
         with feedback.progress(f"Fetching {anime_result.title}"):
-            anime = provider.get(AnimeParams(id=anime_result.id, query=anime_title))
+            anime = provider.get(AnimeParams(id=anime_result.id, query=provider_query))
 
         if not anime:
             raise ViuError(f"Failed to fetch anime {anime_result.title}")
@@ -117,7 +118,7 @@ def search(config: AppConfig, **options: "Unpack[Options]"):
                         feedback,
                         anime,
                         episode,
-                        anime_title,
+                        provider_query,
                     )
             except (ValueError, IndexError) as e:
                 raise ViuError(f"Invalid episode range: {e}") from e
@@ -129,7 +130,7 @@ def search(config: AppConfig, **options: "Unpack[Options]"):
             if not episode:
                 raise ViuError("No episode selected")
             stream_anime(
-                config, provider, selector, feedback, anime, episode, anime_title
+                config, provider, selector, feedback, anime, episode, provider_query
             )
 
 

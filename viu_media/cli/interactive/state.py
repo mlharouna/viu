@@ -98,6 +98,7 @@ class ProviderState(StateModel):
         default=None, alias="search_results"
     )
     anime_: Optional[Anime] = Field(default=None, alias="anime")
+    provider_query_: Optional[str] = Field(default=None, alias="provider_query")
     episode_: Optional[str] = Field(default=None, alias="episode")
     servers_: Optional[Dict[str, Server]] = Field(default=None, alias="servers")
     server_name_: Optional[str] = Field(default=None, alias="server_name")
@@ -114,6 +115,10 @@ class ProviderState(StateModel):
         if self.anime_ is None:
             raise RuntimeError("Malformed state, please report")
         return self.anime_
+
+    @property
+    def provider_query(self) -> str | None:
+        return self.provider_query_
 
     @property
     def episode(self) -> str | None:
