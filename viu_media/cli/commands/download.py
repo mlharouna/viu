@@ -225,7 +225,12 @@ def download_anime(
 
     if config.stream.server.value == "TOP":
         with feedback.progress("Fetching top server"):
-            server = next(streams, None)
+            try:
+                server = next(streams, None)
+            except Exception as exc:
+                raise ViuError(
+                    f"Failed to fetch server for anime: {anime.title}, episode: {episode}. {exc}"
+                ) from exc
             if not server:
                 raise ViuError(
                     f"Failed to get server for anime: {anime.title}, episode: {episode}"

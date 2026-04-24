@@ -35,13 +35,14 @@ def servers(ctx: Context, state: State) -> State | InternalDirective:
             )
         )
         # Consume the iterator to get a list of all servers
-        if config.stream.server == ProviderServer.TOP and server_iterator:
-            try:
-                all_servers = [next(server_iterator)]
-            except Exception:
-                all_servers = []
-        else:
-            all_servers: List[Server] = list(server_iterator) if server_iterator else []
+        try:
+            all_servers = _collect_servers(
+                server_iterator,
+                config.stream.server == ProviderServer.TOP,
+            )
+        except Exception as exc:
+            feedback.error(f"Failed to fetch streaming servers: {exc}")
+            return InternalDirective.BACKX3
 
     if not all_servers:
         feedback.error(f"No streaming servers found for episode {episode_number}")
@@ -117,3 +118,15 @@ def _filter_by_quality(links, quality):
         if str(link.quality) == quality:
             return link
     return links[0] if links else None
+
+
+def _collect_servers(server_iterator, use_top_server: bool) -> List[Server]:
+    if not server_iterator:
+        return []
+    if not use_top_server:
+        return list(server_iterator)
+
+    try:
+        return [next(server_iterator)]
+    except StopIteration:
+        return []
