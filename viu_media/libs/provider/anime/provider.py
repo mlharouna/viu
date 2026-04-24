@@ -14,6 +14,7 @@ PROVIDERS_AVAILABLE = {
     "nyaa": "provider.Nyaa",
     "yugen": "provider.Yugen",
     "animeunity": "provider.AnimeUnity",
+    "animixplay": "provider.Animixplay",
     "animesama": "provider.AnimeSama",
 }
 
