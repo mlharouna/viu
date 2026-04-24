@@ -4,7 +4,7 @@ from typing import Any
 
 from viu_media.libs.provider.anime.animepahe.mappers import map_to_anime_result
 from viu_media.libs.provider.anime.animepahe.provider import AnimePahe
-from viu_media.libs.provider.anime.params import EpisodeStreamsParams
+from viu_media.libs.provider.anime.params import EpisodeStreamsParams, SearchParams
 from viu_media.libs.provider.anime.types import (
     AnimeEpisodeInfo,
     AnimeEpisodes,
@@ -134,3 +134,20 @@ def test_episode_streams_returns_empty_when_requested_translation_is_unavailable
     )
 
     assert streams == []
+
+
+def test_search_returns_none_when_animepahe_serves_html_challenge() -> None:
+    provider = AnimePahe(
+        FakeClient(
+            [
+                FakeResponse(
+                    text="<html><title>DDoS-Guard</title></html>",
+                    data=None,
+                )
+            ]
+        )
+    )
+
+    results = provider.search(SearchParams(query="Rent-a-Girlfriend Season 4"))
+
+    assert results is None
