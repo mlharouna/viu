@@ -136,19 +136,25 @@ class AnimePahe(BaseAnimeProvider):
         translation_type = None
         stream_links = []
         stream_host = None
+        skipped_audio = 0
+        skipped_missing_embed = 0
+        skipped_decode = 0
+        skipped_missing_stream = 0
 
         # TODO: better document the scraping process
         for res_dict in res_dicts:
             # the actual attributes are data attributes in the original html 'prefixed with data-'
-            embed_url = res_dict["src"]
+            embed_url = res_dict.get("src")
             logger.debug(f"Found embed url: {embed_url}")
-            data_audio = "dub" if res_dict["audio"] == "eng" else "sub"
+            data_audio = "dub" if res_dict.get("audio") == "eng" else "sub"
 
             if data_audio != params.translation_type:
+                skipped_audio += 1
                 logger.debug(f"Found {data_audio} but wanted {params.translation_type}")
                 continue
 
             if not embed_url:
+                skipped_missing_embed += 1
                 logger.warning("embed url not found please report to the developers")
                 continue
 
@@ -165,17 +171,19 @@ class AnimePahe(BaseAnimeProvider):
 
             decoded_js = process_animepahe_embed_page(embed_page)
             if not decoded_js:
+                skipped_decode += 1
                 logger.error("failed to decode embed page")
                 continue
             logger.debug(f"Decoded JS: {decoded_js[:100]}...")
             juicy_stream = JUICY_STREAM_REGEX.search(decoded_js)
             if not juicy_stream:
+                skipped_missing_stream += 1
                 logger.error("failed to find juicy stream")
                 continue
             logger.debug(f"Found juicy stream: {juicy_stream.group(1)}")
             juicy_stream = juicy_stream.group(1)
             stream_host = urlparse(juicy_stream).hostname
-            quality = res_dict["resolution"]
+            quality = res_dict.get("resolution", "1080")
             logger.debug(f"Found quality: {quality}")
             translation_type = data_audio
             stream_links.append((quality, juicy_stream))
@@ -189,6 +197,20 @@ class AnimePahe(BaseAnimeProvider):
             yield map_to_server(
                 episode, translation_type, stream_links, headers=headers
             )
+            return
+
+        logger.warning(
+            "No AnimePahe streams found for anime=%s episode=%s translation=%s "
+            "(candidates=%s skipped_audio=%s missing_embed=%s decode_failed=%s missing_stream=%s)",
+            params.anime_id,
+            params.episode,
+            params.translation_type,
+            len(res_dicts),
+            skipped_audio,
+            skipped_missing_embed,
+            skipped_decode,
+            skipped_missing_stream,
+        )
 
     @lru_cache()
     def _get_episode_info(

@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict
 class ProviderName(Enum):
     ANIMEPAHE = "animepahe"
     ANIMEUNITY = "animeunity"
+    ANIMESAMA = "animesama"
 
 
 class ProviderServer(Enum):
