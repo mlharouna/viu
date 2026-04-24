@@ -40,6 +40,9 @@ class AnimeSama(BaseAnimeProvider):
         super().__init__(client)
         self.base_url = normalize_base_url(ANIMESAMA_BASE_URL)
         self.catalogue_url = ANIMESAMA_CATALOGUE_URL
+        self._episode_sources_cache: dict[
+            tuple[str, str], dict[str, dict[str, list[str]]]
+        ] = {}
 
     @debug_provider
     def search(self, params: SearchParams) -> SearchResults | None:
@@ -101,6 +104,14 @@ class AnimeSama(BaseAnimeProvider):
         )
 
         episodes = self._load_episodes(params.id, season_links)
+        self._episode_sources_cache[(params.id, params.query)] = {
+            episode["episode"]: {
+                translation: list(source["players"])
+                for lang_id, source in episode["sources"].items()
+                if (translation := translation_from_lang_id(lang_id))
+            }
+            for episode in episodes
+        }
         if not episodes:
             return Anime(
                 id=search_result.id,
@@ -163,6 +174,7 @@ class AnimeSama(BaseAnimeProvider):
                     episode_names,
                     players_by_lang[lang_id],
                     lang_id,
+                    links[0]["season"],
                 )
 
         return merged_episodes
@@ -209,6 +221,11 @@ class AnimeSama(BaseAnimeProvider):
     def _get_episode_sources(
         self, params: EpisodeStreamsParams
     ) -> dict[str, list[str]]:
+        if cached_sources := self._episode_sources_cache.get(
+            (params.anime_id, params.query)
+        ):
+            return cached_sources.get(params.episode, {})
+
         page = self.client.get(
             f"{self.catalogue_url}{params.anime_id}/",
             follow_redirects=True,
@@ -219,14 +236,19 @@ class AnimeSama(BaseAnimeProvider):
             params.query,
         )
         episodes = self._load_episodes(params.anime_id, season_links)
+        cached_sources: dict[str, dict[str, list[str]]] = {}
         for episode in episodes:
+            cached_sources[episode["episode"]] = {
+                translation: list(source["players"])
+                for lang_id, source in episode["sources"].items()
+                if (translation := translation_from_lang_id(lang_id))
+            }
             if episode["episode"] == params.episode:
-                sources: dict[str, list[str]] = {}
-                for lang_id, source in episode["sources"].items():
-                    translation = translation_from_lang_id(lang_id)
-                    if translation:
-                        sources.setdefault(translation, []).extend(source["players"])
-                return sources
+                self._episode_sources_cache[(params.anime_id, params.query)] = (
+                    cached_sources
+                )
+                return cached_sources[episode["episode"]]
+        self._episode_sources_cache[(params.anime_id, params.query)] = cached_sources
         return {}
 
     @debug_provider
@@ -241,6 +263,16 @@ class AnimeSama(BaseAnimeProvider):
             return None
 
         sources = self._get_episode_sources(params)
+        if not sources.get(params.translation_type):
+            logger.warning(
+                "Anime-Sama found no %s sources for anime=%s query=%r episode=%s available=%s",
+                params.translation_type,
+                params.anime_id,
+                params.query,
+                params.episode,
+                sorted(sources),
+            )
+            return None
         for url in sources.get(params.translation_type, []):
             yield map_to_server(
                 source_name_from_url(url),

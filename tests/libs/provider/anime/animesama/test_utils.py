@@ -15,6 +15,7 @@ from viu_media.libs.provider.anime.animesama.utils import (
     search_query_candidates,
 )
 from viu_media.libs.provider.anime.params import AnimeParams
+from viu_media.libs.provider.anime.params import EpisodeStreamsParams
 from viu_media.libs.provider.anime.params import SearchParams
 
 
@@ -274,16 +275,42 @@ def test_merge_episode_languages_combines_sources_by_name() -> None:
         ["Episode 1", "Episode 2"],
         [["https://vostfr.example/1"], ["https://vostfr.example/2"]],
         "vostfr",
+        "saison1",
     )
     merged = merge_episode_languages(
         merged,
         ["Episode 1", "Episode 2"],
         [["https://vf.example/1"], ["https://vf.example/2"]],
         "vf",
+        "saison1",
     )
 
     assert merged[0]["episode"] == "1"
     assert sorted(merged[0]["sources"]) == ["vf", "vostfr"]
+
+
+def test_merge_episode_languages_keeps_same_episode_number_from_other_seasons_distinct() -> (
+    None
+):
+    merged = merge_episode_languages(
+        [],
+        ["Episode 10"],
+        [["https://s1.example/10"]],
+        "vostfr",
+        "saison1",
+    )
+    merged = merge_episode_languages(
+        merged,
+        ["Episode 10"],
+        [["https://s4.example/10"]],
+        "vostfr",
+        "saison4",
+    )
+
+    assert [(entry["season"], entry["episode"]) for entry in merged] == [
+        ("saison1", "10"),
+        ("saison4", "10"),
+    ]
 
 
 def test_search_retries_with_normalized_query_when_original_returns_no_results() -> (
@@ -432,3 +459,75 @@ def test_get_filters_to_requested_season_before_loading_episodes(
         ("saison2", "vostfr"),
         ("saison2", "vf"),
     ]
+
+
+def test_episode_streams_reuses_cached_sources_for_same_query() -> None:
+    matching_results = """
+    <div class="shrink-0 catalog-card card-base">
+      <a href="https://anime-sama.to/catalogue/rent-a-girlfriend/">
+        <img class="card-image" src="https://cdn.example/rag.jpg" alt="Rent a Girlfriend">
+        <h2 class="card-title">Rent a Girlfriend</h2>
+        <p class="alternate-titles">Kanojo Okarishimasu</p>
+        <span class="info-label">Genres</span><p class="info-value">Romance</p>
+        <span class="info-label">Types</span><p class="info-value">Anime</p>
+        <span class="info-label">Langues</span><p class="info-value">VOSTFR</p>
+        <div class="synopsis-content">Rental romance.</div>
+      </a>
+    </div>
+    """
+    catalogue_page = """
+    <div class="shrink-0 catalog-card card-base">
+      <a href="https://anime-sama.to/catalogue/rent-a-girlfriend/">
+        <img class="card-image" src="https://cdn.example/rag.jpg" alt="Rent a Girlfriend">
+        <h2 class="card-title">Rent a Girlfriend</h2>
+        <p class="alternate-titles">Kanojo Okarishimasu</p>
+        <span class="info-label">Genres</span><p class="info-value">Romance</p>
+        <span class="info-label">Types</span><p class="info-value">Anime</p>
+        <span class="info-label">Langues</span><p class="info-value">VOSTFR</p>
+        <div class="synopsis-content">Rental romance.</div>
+      </a>
+    </div>
+    <script>
+      panneauAnime("Saison 4", "saison4/vostfr");
+    </script>
+    """
+    provider = AnimeSama(FakeClient([matching_results, catalogue_page]))
+
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(
+        provider,
+        "_load_episodes",
+        lambda slug, season_links: [
+            {
+                "season": "saison4",
+                "episode": "10",
+                "title": "Episode 10",
+                "sources": {
+                    "vostfr": {
+                        "name": "vidmoly.net",
+                        "players": ["https://vidmoly.net/embed-10.html"],
+                    }
+                },
+            }
+        ],
+    )
+
+    anime = provider.get(
+        AnimeParams(id="rent-a-girlfriend", query="Rent a Girlfriend Season 4")
+    )
+    assert anime is not None
+
+    streams = list(
+        provider.episode_streams(
+            EpisodeStreamsParams(
+                anime_id="rent-a-girlfriend",
+                query="Rent a Girlfriend Season 4",
+                episode="10",
+                translation_type="sub",
+            )
+        )
+    )
+
+    monkeypatch.undo()
+
+    assert [server.name for server in streams] == ["vidmoly.net"]

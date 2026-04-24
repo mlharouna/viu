@@ -353,14 +353,21 @@ def merge_episode_languages(
     names: list[str],
     players_by_episode: list[list[str]],
     lang_id: str,
+    season: str,
 ) -> list[AnimeSamaEpisodeEntry]:
     merged = list(episodes)
     for index, (name, players) in enumerate(
         zip(names, players_by_episode, strict=False), start=1
     ):
         normalized_name = clean_text(name)
+        episode_number = parse_episode_number(normalized_name, index)
         existing = next(
-            (episode for episode in merged if episode["title"] == normalized_name), None
+            (
+                episode
+                for episode in merged
+                if episode["season"] == season and episode["episode"] == episode_number
+            ),
+            None,
         )
         source = AnimeSamaEpisodeSource(
             name=source_name_from_url(players[0]) if players else "player",
@@ -372,7 +379,8 @@ def merge_episode_languages(
 
         merged.append(
             AnimeSamaEpisodeEntry(
-                episode=parse_episode_number(normalized_name, index),
+                season=season,
+                episode=episode_number,
                 title=normalized_name,
                 sources={lang_id: source},
             )
