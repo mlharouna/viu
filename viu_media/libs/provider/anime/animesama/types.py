@@ -25,6 +25,7 @@ class AnimeSamaEpisodeSource(TypedDict):
 
 
 class AnimeSamaEpisodeEntry(TypedDict):
+    season: str
     episode: str
     title: str
     sources: dict[str, AnimeSamaEpisodeSource]
